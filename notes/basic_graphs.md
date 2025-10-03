@@ -13,3 +13,8 @@ stack bag: DFS O(V + E)
 queue: BFS O(V + E)
 priority queue/heap: "Best first" O(V + ElogE) for weighted graphs 
 
+10/9 goal 
+
+parse file 
+create adjacency matrix 
+modify + run bfs algorithm

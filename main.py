@@ -18,7 +18,7 @@ def bfs(start: Vertex):
                     queue.append(neighbor)
     
     return order
-                
+        
 
 if __name__ == "__main__":
     a = Vertex(key="a")
