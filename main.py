@@ -1,3 +1,4 @@
+import time
 from vertex import Vertex
 from collections import deque 
 
@@ -59,7 +60,16 @@ def generate_graph(adjacency_matrix: dict):
             
 
 if __name__ == "__main__":
+    start_time = time.time()
+
     mn_mtx = parse_mtx("include/road-minnesota/road-minnesota.mtx")
     graph = generate_graph(mn_mtx)
     
-    bfs(graph["7"])
+    start_key = list(graph.keys())[0]
+    bfs_result = bfs(graph[start_key])
+
+    end_time = time.time()
+
+    elapsed_time = end_time - start_time
+    print(f"Total execution time: {elapsed_time: .4f} seconds")
+    print(f"BFS found {len(bfs_result)} nodes")
