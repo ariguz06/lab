@@ -20,6 +20,41 @@ def bfs(start: Vertex):
     
     return order
 
+"""BFS that returns distances from start node to all other nodes"""
+def bfs_with_distances(start: Vertex):
+    
+    distances = {start: 0}
+    queue = deque([start])
+    
+    while queue:
+        node = queue.popleft()
+        current_distance = distances[node]
+        
+        for neighbor in node.neighbors:
+            if neighbor not in distances:
+                distances[neighbor] = current_distance + 1
+                queue.append(neighbor)
+    
+    return distances
+
+"""Calculate approximate diameter using sampling"""
+def graph_diameter_sampled(graph, sample_size=100):
+    
+    diameter = 0
+    nodes = list(graph.values())
+    
+    print(f"Calculating approximate diameter using {sample_size} samples...")
+    
+    for i in range(min(sample_size, len(nodes))):
+        start_vertex = nodes[i]
+        distances = bfs_with_distances(start_vertex)
+        
+        if distances:
+            max_distance = max(distances.values())
+            diameter = max(diameter, max_distance)
+    
+    return diameter
+
 '''
 parses .mtx file and returns adjacency matrix 
 '''
@@ -68,8 +103,12 @@ if __name__ == "__main__":
     start_key = list(graph.keys())[0]
     bfs_result = bfs(graph[start_key])
 
+    # Calculate diameter
+    diameter = graph_diameter_sampled(graph)
+    
     end_time = time.time()
 
     elapsed_time = end_time - start_time
-    print(f"Total execution time: {elapsed_time: .4f} seconds")
+    print(f"Total execution time: {elapsed_time:.4f} seconds")
     print(f"BFS found {len(bfs_result)} nodes")
+    print(f"Graph diameter: {diameter}")
