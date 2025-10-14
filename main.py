@@ -105,7 +105,7 @@ if __name__ == "__main__":
     bfs_result = bfs(graph[start_key])
 
     # Calculate diameter
-    diameter = graph_diameter(graph)
+    diameter = graph_diameter_sampled(graph)
     
     end_time = time.time()
 
