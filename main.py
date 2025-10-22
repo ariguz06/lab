@@ -1,115 +1,191 @@
 import time
-from vertex import Vertex
 from collections import deque 
+import random
 
-def bfs(start: Vertex):
-    visited = set()
-    queue = deque([start])
-    order = []
-    
-    while queue:
-        node = queue.popleft()
-        
-        if node not in visited:
-            visited.add(node)
-            order.append(node.key)
-            
-            for neighbor in node.neighbors:
-                if neighbor not in visited:
-                    queue.append(neighbor)
-    
-    return order
-
-
-"""BFS that returns distances from start node to all other nodes"""
-def bfs_with_distances(start: Vertex):
-    
+def bfs_with_distances(start):
     distances = {start: 0}
     queue = deque([start])
     
     while queue:
-        node = queue.popleft()
-        current_distance = distances[node]
+        current = queue.popleft()
+        current_dist = distances[current]
         
-        for neighbor in node.neighbors:
+        for neighbor in graph[current]:
             if neighbor not in distances:
-                distances[neighbor] = current_distance + 1
+                distances[neighbor] = current_dist + 1
                 queue.append(neighbor)
     
     return distances
 
+def double_sweep_eccentricity():
+    if not graph:
+        return 0, 0, 0
+    
+    nodes = list(graph.keys())
+    start_node = random.choice(nodes)
+    
+    dist1 = bfs_with_distances(start_node)
+    u = max(dist1, key=dist1.get)
+    min_ecc = dist1[u]
+    
+    dist2 = bfs_with_distances(u)
+    max_ecc = max(dist2.values())
+    
+    return min_ecc, max_ecc, max_ecc
 
-"""Calculate approximate diameter using sampling"""
-def graph_diameter_sampled(graph, sample_size=100):
+def min_degree_ordering():
+    """Simple min-degree elimination ordering"""
+    working_graph = {node: set(neighbors) for node, neighbors in graph.items()}
+    ordering = []
     
-    diameter = 0
-    nodes = list(graph.values())
-    
-    print(f"Calculating approximate diameter using {sample_size} samples...")
-    
-    for i in range(min(sample_size, len(nodes))):
-        start_vertex = nodes[i]
-        distances = bfs_with_distances(start_vertex)
+    while working_graph:
+        # Find node with smallest degree
+        min_degree = float('inf')
+        best_node = None
         
-        if distances:
-            max_distance = max(distances.values())
-            diameter = max(diameter, max_distance)
-    
-    return diameter
-
-'''
-parses .mtx file and returns adjacency matrix 
-'''
-def parse_mtx(file_path: str, start_line: int = 16):
-    adjacency_matrix = {}
-    
-    with open(file_path, 'r') as file:
-        for line in file:
-            if not line.strip() or line.startswith('%'):
-                continue
-            
-            split = line.strip().split()
-            if len(split) == 3:
-                continue
-            
-            u, v = map(int, line.split())
-            
-            if u not in adjacency_matrix:
-                adjacency_matrix[u] = {}
-                
-            adjacency_matrix[u][v] = 1
-    
-    return adjacency_matrix
-
-def generate_graph(adjacency_matrix: dict):
-    seen = {}
-    
-    for u, neighbors in adjacency_matrix.items():
-        if u not in seen:
-            seen[u] = Vertex(key=str(u))
+        for node, neighbors in working_graph.items():
+            degree = len(neighbors)
+            if degree < min_degree:
+                min_degree = degree
+                best_node = node
         
-        for v in neighbors:
-            if v not in seen:
-                seen[v] = Vertex(key=str(v))
-            seen[u].neighbors.append(seen[v])
+        ordering.append(best_node)
+        
+        # Connect all neighbors (make it simplicial)
+        neighbors = list(working_graph[best_node])
+        for i in range(len(neighbors)):
+            for j in range(i + 1, len(neighbors)):
+                if neighbors[j] not in working_graph[neighbors[i]]:
+                    working_graph[neighbors[i]].add(neighbors[j])
+                    working_graph[neighbors[j]].add(neighbors[i])
+        
+        # Remove the node
+        del working_graph[best_node]
+        for neighbors in working_graph.values():
+            neighbors.discard(best_node)
     
-    return seen
+    return ordering
 
-if __name__ == "__main__":
+def min_fill_ordering():
+    """Min-fill elimination ordering - adds fewest edges when eliminated"""
+    working_graph = {node: set(neighbors) for node, neighbors in graph.items()}
+    ordering = []
+    
+    while working_graph:
+        min_fill = float('inf')
+        best_node = None
+        
+        for node in working_graph:
+            neighbors = working_graph[node]
+            fill_edges = 0
+            
+            # Count edges needed to connect neighbors
+            neighbor_list = list(neighbors)
+            for i in range(len(neighbor_list)):
+                for j in range(i + 1, len(neighbor_list)):
+                    if neighbor_list[j] not in working_graph[neighbor_list[i]]:
+                        fill_edges += 1
+            
+            if fill_edges < min_fill:
+                min_fill = fill_edges
+                best_node = node
+        
+        ordering.append(best_node)
+        
+        # Connect neighbors
+        neighbors = list(working_graph[best_node])
+        for i in range(len(neighbors)):
+            for j in range(i + 1, len(neighbors)):
+                if neighbors[j] not in working_graph[neighbors[i]]:
+                    working_graph[neighbors[i]].add(neighbors[j])
+                    working_graph[neighbors[j]].add(neighbors[i])
+        
+        # Remove node
+        del working_graph[best_node]
+        for neighbors in working_graph.values():
+            neighbors.discard(best_node)
+    
+    return ordering
+
+def calculate_treewidth(ordering):
+    """Calculate treewidth from elimination ordering"""
+    working_graph = {node: set(neighbors) for node, neighbors in graph.items()}
+    max_clique_size = 0
+    
+    for node in ordering:
+        if node not in working_graph:
+            continue
+            
+        # Clique size = node + its neighbors
+        clique_size = 1 + len(working_graph[node])
+        max_clique_size = max(max_clique_size, clique_size)
+        
+        # Connect neighbors
+        neighbors = list(working_graph[node])
+        for i in range(len(neighbors)):
+            for j in range(i + 1, len(neighbors)):
+                if neighbors[j] not in working_graph[neighbors[i]]:
+                    working_graph[neighbors[i]].add(neighbors[j])
+                    working_graph[neighbors[j]].add(neighbors[i])
+        
+        # Remove node
+        del working_graph[node]
+        for neighbors in working_graph.values():
+            neighbors.discard(node)
+    
+    return max_clique_size - 1  # treewidth = max clique size - 1
+
+def random_ordering():
+    """Random elimination ordering"""
+    nodes = list(graph.keys())
+    random.shuffle(nodes)
+    return nodes
+
+# Read graph data
+graph = {}
+
+with open("include/road-minnesota/road-minnesota.mtx", 'r') as f:
+    lines = f.readlines()
+
+for line in lines:
+    if line.startswith('%') or not line.strip():
+        continue
+    parts = line.split()
+    if len(parts) >= 2:
+        u = int(parts[0])
+        v = int(parts[1])
+        
+        if u not in graph:
+            graph[u] = set()
+        if v not in graph:
+            graph[v] = set()
+        
+        graph[u].add(v)
+        graph[v].add(u)
+
+print(f"Graph has {len(graph)} nodes")
+
+# Calculate eccentricity first
+min_ecc, max_ecc, diameter = double_sweep_eccentricity()
+print(f"Diameter: {diameter}")
+print()
+
+# Test different elimination orderings
+methods = [
+    ('Random', random_ordering),
+    ('Min-Degree', min_degree_ordering),
+    ('Min-Fill', min_fill_ordering)
+]
+
+for method_name, method_func in methods:
     start_time = time.time()
-
-    mn_mtx = parse_mtx("include/road-minnesota/road-minnesota.mtx")
-    graph = generate_graph(mn_mtx)
     
-    start_key = list(graph.keys())[0]
-    bfs_result = bfs(graph[start_key])
-
-    # Calculate diameter
-    diameter = graph_diameter_sampled(graph)
+    ordering = method_func()
+    treewidth = calculate_treewidth(ordering)
     
-    end_time = time.time()
-
-    elapsed_time = end_time - start_time
-    print(f"Total execution time: {elapsed_time:.4f} seconds")
-    print(f"BFS found {len(bfs_result)} nodes")
-    print(f"Graph diameter: {diameter}")
+    elapsed = time.time() - start_time
+    
+    print(f"{method_name} Ordering:")
+    print(f"  Treewidth: {treewidth}")
+    print(f"  Time: {elapsed:.4f}s")
+    print()
