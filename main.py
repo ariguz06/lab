@@ -2,7 +2,7 @@ from collections import deque
 import time
 
 '''g: graph represented by dict of type [int, list[int]], with each key being a vertex u in g and each value the neighbors of u'''
-def bfs(g: dict[int, list[int]], start_key: int, goal_key: int = -1) -> ([int], dict[int, int]):
+def bfs(g: dict[int, list[int]], start_key: int, goal_key: int = -1):
     visited = set()
     queue = deque([start_key])
 
@@ -47,7 +47,7 @@ def diameter(g: dict[int, list[int]], sample_size=100) -> int:
 
 def parse_mtx(file_path: str):
 
-    adjacency_dict = {}
+    adjacency_dict: dict[int, list[int]] = {}
     start_key = None
 
     with open(file_path, 'r') as file:
@@ -75,15 +75,12 @@ def parse_mtx(file_path: str):
     # returns graph + first vertex
     return adjacency_dict, start_key
 
-# record time to run bfs on each of the different graphs
-# find diameter of graph from bfs tree (longest path)
-
 if __name__ == "__main__":
     usa_path = "include/road-road-usa/road-road-usa.mtx"
     mn_path = "include/road-minnesota/road-minnesota.mtx"
 
     start_time = time.time()
-    graph = parse_mtx(usa_path)
+    graph = parse_mtx(mn_path)
     end_time = time.time()
 
     parse_time = end_time - start_time
