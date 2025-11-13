@@ -97,5 +97,5 @@ class TreeDecomp:
         lines = [f"TreeDecomp with {self.num_bags()} bags"]
         if self.root:
             lines.append(f"Root bag has {len(self.root.g)} vertices")
-        lines.append(f"Tree width: {self.tree_width()}")
+        lines.append(f"Treewidth: {self.tree_width()}")
         return "\n".join(lines)

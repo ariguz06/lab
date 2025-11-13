@@ -153,7 +153,7 @@ class Graph:
         td = TreeDecomp()
         ordering: dict[int, int] = {}
 
-        for i in range(0, len(h_adj.keys())-1):
+        for i in range(len(h_adj)):
             min_degree: int = self.min_degree(h=h_adj)
             star_min_deg = self.star(h_adj, min_degree)
             td.add_bag(star_min_deg)
@@ -164,14 +164,10 @@ class Graph:
         for v in self.g:
             star_v: dict[int, list[int]] = self.star(self.g, v)
             if len(list(star_v.values())[0]) > 1:
-                min_ordering_vertex = list(star_v.keys())[0]
                 
                 # finds vertex in X(v) \ {v} with smallest ordering value
-                # outer for loop only returns one key-value pair
-                for vertex, values in star_v.items():
-                    for value in values:
-                        if v != vertex and value < ordering.get(min_ordering_vertex):
-                            min_ordering_vertex = vertex
+                ordering_exclude_v = {vertex: value for vertex, value in ordering.items() if vertex != v}
+                min_ordering_vertex = min(ordering_exclude_v, key=ordering_exclude_v.get)
 
                 star_u = self.star(self.g, min_ordering_vertex)
                 td.add_edge(Graph(adjacency_dict=star_v), Graph(adjacency_dict=star_u))
@@ -190,6 +186,13 @@ class Graph:
         return to_ret
 
     def h_two_h(self):
+
+        def anc():
+            pass
+
+        def dis():
+            pass
+
         tg = self.dp_tree_decomp()
 
         call_stack = deque()
