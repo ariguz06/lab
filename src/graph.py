@@ -94,7 +94,7 @@ class Graph:
     
     '''Returns adjacency dict consisting of vertex and its neighbors as vertices, edges from vertex to its neighbors as edges'''
     @staticmethod
-    def star(adj: dict[int, list[int]], vertex: int) -> dict[int, list[int]] | dict:
+    def star(adj: dict[int, list[int]], vertex: int) -> dict[int, list[int]]:
         if not vertex in adj:
             return {}
         
@@ -170,6 +170,8 @@ class Graph:
                 min_ordering_vertex = min(ordering_exclude_v, key=ordering_exclude_v.get)
 
                 star_u = self.star(self.g, min_ordering_vertex)
+
+                # root can be last u vertex added (or any node, really)
                 td.add_edge(Graph(adjacency_dict=star_v), Graph(adjacency_dict=star_u))
                         
         # addl for loop here for reassigning edge weights
@@ -185,12 +187,16 @@ class Graph:
 
         return to_ret
 
+    # Hierarchical 2-hop indexing
     def h_two_h(self):
 
+        # Question: how should we define these?
         def anc():
+            # sequence of edges from node n to root, including n and all nodes in between
             pass
 
         def dis():
+            # counts edges from node to X(v)
             pass
 
         tg = self.dp_tree_decomp()
@@ -207,3 +213,8 @@ class Graph:
 
                     for i in range(0, len(star_x)):
                         pass
+
+            # Repopulate stack
+            for bag in c_bag.get_neighbors():
+                if not bag in call_stack:
+                    call_stack.append(bag)
