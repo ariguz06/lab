@@ -1,0 +1,10 @@
+./__pycache__
+./.venv
+/.idea
+*.pyc
+*.pyo
+/include
+/include/road-road-usa/road-road-usa.mtx
+/include/road-usroads-48/road-usroads-48.mtx
+./notes/interview.md
+notes/interview.md
