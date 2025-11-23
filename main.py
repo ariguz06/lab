@@ -2,6 +2,7 @@ from collections import deque
 import random
 import time
 
+<<<<<<< HEAD
 '''g: graph represented by dict of type [int, list[int]], with each key being a vertex u in g and each value the neighbors of u. 
 returns traversal, dict [key, value] denoting distance start vertex is [value] distance away from vertex [key]'''
 def bfs(g: dict[int, list[int]], start_key: int, goal_key: int = -1):
@@ -333,13 +334,28 @@ def naive_H2H(bags, lambdas, parent, phi):
     return anc, pos, dis
 
 
+=======
+from src.graph import Graph
+from src.tree_decomp import TreeDecomp
+
+>>>>>>> upstream/main
 
 if __name__ == "__main__":
     usa_path = "include/road-road-usa/road-road-usa.mtx"
     mn_path = "include/road-minnesota/road-minnesota.mtx"
+<<<<<<< HEAD
 
     start_time = time.time()
     graph, start_vertex = parse_mtx(mn_path)
+=======
+    us_48_path = "include/road-usroads-48/road-usroads-48.mtx"
+
+    start_time = time.time()
+    # mn_graph = Graph(file_path=mn_path)
+    # usa_graph = Graph(file_path=usa_path)
+    usa_48_graph = Graph(file_path=us_48_path)
+
+>>>>>>> upstream/main
     end_time = time.time()
 
     parse_time = end_time - start_time
@@ -347,13 +363,18 @@ if __name__ == "__main__":
     print("Graph parse time: " + str(parse_time))
 
     start_time = time.time()
+<<<<<<< HEAD
     bfs_result = bfs(graph, start_vertex)
+=======
+    bfs_result = usa_48_graph.bfs(17)
+>>>>>>> upstream/main
     end_time = time.time()
 
     bfs_time = end_time - start_time
 
     print("BFS time: " + str(bfs_time))
     print("BFS size: " + str(len(bfs_result[0])))
+<<<<<<< HEAD
     print("Graph diameter: " + str(estimate_diameter(graph, samples=100)))
 
     td_start = time.time()
@@ -389,3 +410,15 @@ if __name__ == "__main__":
     max_lambda = max(len(lambdas[v]) for v in lambdas)
     print("Max lambda size:", max_lambda)
 
+=======
+    print("Graph diameter (lower, upper): " + str(usa_48_graph.estimate_diameter(samples=10)))
+    print("Total time: " + str(parse_time + bfs_time))
+
+    start_time = time.time()
+    td = usa_48_graph.dp_tree_decomp()
+    end_time = time.time()
+
+    print("DP tree decomposition time: " + str(end_time - start_time))
+    print("Tree decomposition bag #: " + str(td))
+    td.tree_width()
+>>>>>>> upstream/main
