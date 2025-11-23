@@ -5,8 +5,15 @@ from src.tree_decomp import TreeDecomp
 
 class Graph:
     
-    
     def __init__(self, adjacency_dict: dict[int, list[int]]=None, file_path=None):
+
+        self._hash = None
+        self.pos: list[int] = []
+        self.dis: list[int] = []
+        
+        # Used for H2H
+        self.root: int = 0
+
         if adjacency_dict:
             self.g: dict[int, list[int]] = adjacency_dict
         elif file_path:
@@ -15,24 +22,28 @@ class Graph:
             self.g = {}
             self.start_key = None
             
+        self.edges = self.get_edges(adj=self.g)
+            
     def __eq__(self, other):
         if not isinstance(other, Graph): return False
         return self.g == other.g
     
     def __hash__(self):
-        frozen_adj = tuple(sorted(
-            (v, tuple(sorted(neigh))) for v, neigh in self.g.items()
-        ))
-        
-        return hash(frozen_adj)
+        if self._hash is None:
+            frozen_adj = tuple(
+                (v, frozenset(neigh)) for v, neigh in self.g.items()
+            )
+            self._hash = hash(frozen_adj)
+        return self._hash
+
 
     @staticmethod
-    def get_edges(adj: dict[int, list[int]]) -> list[tuple]:
-        edges = []
+    def get_edges(adj: dict[int, list[int]]) -> set[tuple]:
+        edges = set()
         
         for k, v in adj.items():
             for vertex in v:
-                edges.append((k, vertex))
+                edges.add((k, vertex))
         
         return edges
 
@@ -100,6 +111,9 @@ class Graph:
         
         return {vertex: adj[vertex]}
 
+    def neighbors(self, vertex: int) -> list[int]:
+        return self.star(self.g, vertex)
+
     def diameter(self, sample_size=100):
         d = 0
         vertices = list(self.g.keys())
@@ -125,16 +139,16 @@ class Graph:
 
         return lower_bound, upper_bound
     
+    # Returns list of edges to then be added to h_adj in tree decomposition 
     def triangulate_neighbors(self, adj: dict[int, list[int]], vertex: int) -> dict[int, list[int]]:
         h_adj = adj
         
-        if not vertex in adj: return {}
-        
         neighbors = adj[vertex]
-        edges = self.get_edges(adj)
+        edges = self.edges
+        l = len(neighbors)
         
-        for i in range(0, len(neighbors)):
-            for j in range(0, len(neighbors)):
+        for i in range(l):
+            for j in range(l):
                 u = neighbors[i]
                 w = neighbors[j]
                 
@@ -152,14 +166,19 @@ class Graph:
         h_adj = self.g
         td = TreeDecomp()
         ordering: dict[int, int] = {}
+        
+        count = 0
 
         for i in range(len(h_adj)):
             min_degree: int = self.min_degree(h=h_adj)
             star_min_deg = self.star(h_adj, min_degree)
-            td.add_bag(star_min_deg)
+            td.add_bag(star_min_deg, min_degree)
             
             h_adj = self.triangulate_neighbors(h_adj, min_degree)
             ordering[min_degree] = i
+            
+            if(count % 1000 == 0): print(count)
+            count += 1
             
         for v in self.g:
             star_v: dict[int, list[int]] = self.star(self.g, v)
@@ -172,7 +191,7 @@ class Graph:
                 star_u = self.star(self.g, min_ordering_vertex)
 
                 # root can be last u vertex added (or any node, really)
-                td.add_edge(Graph(adjacency_dict=star_v), Graph(adjacency_dict=star_u))
+                td.add_edge(Graph(adjacency_dict=star_v), min_ordering_vertex, Graph(adjacency_dict=star_u), v)
                         
         # addl for loop here for reassigning edge weights
         
@@ -188,33 +207,42 @@ class Graph:
         return to_ret
 
     # Hierarchical 2-hop indexing
-    def h_two_h(self):
+    def h_two_h(self, tg):
 
-        # Question: how should we define these?
-        def anc():
-            # sequence of edges from node n to root, including n and all nodes in between
-            pass
+        call_stack = [tg.root]
+        h2h = []
+        visited = set()
 
-        def dis():
-            # counts edges from node to X(v)
-            pass
-
-        tg = self.dp_tree_decomp()
-
-        call_stack = deque()
-        call_stack.append(tg.root)
+        # implement algorithm 1
+        # find graph of ~100k vertices
+        # make tables similar to figure 11
 
         while call_stack:
-            c_bag = call_stack.pop()
-            for vertex in c_bag.g.keys():
+            c_bag: Graph = call_stack.pop()
 
-                for neighbor in c_bag.g[vertex]:
-                    star_x = self.dict_to_list(self.star(self.g, neighbor))
+            xv_list: list[int] = self.dict_to_list(c_bag.g) # assume X(v) \in V(Tg) = (x_1,x_2...x_|v|)
 
-                    for i in range(0, len(star_x)):
-                        pass
+            anc_list = tg.anc(c_bag)
 
-            # Repopulate stack
-            for bag in c_bag.get_neighbors():
-                if not bag in call_stack:
-                    call_stack.append(bag)
+            for i in range(len(xv_list)-1):
+                pass
+                # c_bag.pos.append(anc_list.index(xv_list[i])) #X(v).pos_i = index of x_i in X(v).anc
+
+            for i in range(len(anc_list) - 2):
+                c_bag.dis.append(1)
+                # add
+
+            if len(c_bag.dis) == 0:
+                c_bag.dis.append(0)
+            else:
+                c_bag.dis[len(anc_list)] = 0
+
+            h2h.append((c_bag.dis, c_bag.pos))
+
+            visited.add(c_bag)
+
+            for neighbor in tg.get_neighbors(c_bag):
+                if not neighbor in visited:
+                    call_stack.append(neighbor)
+
+        return h2h
