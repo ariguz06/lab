@@ -249,6 +249,55 @@ class Graph:
                     if phi[x] < phi[best_parent]:
                         best_parent = x
                 parent[v] = best_parent
+
+        for v in bags:
+            bag_v = bags[v]
+            lam_v = lambdas[v]
+
+            index_v = 0
+            while index_v < len(bag_v) and bag_v[index_v] != v:
+                index_v += 1
+            
+            pivot_lambda = lam_v[index_v]
+            pivot = (v, pivot_lambda)
+
+            rest = []
+            idx = 0
+            while idx < len(bag_v):
+                if bag_v[idx] != v:
+                    vertex_value = bag_v[idx]
+                    lambda_value = lam_v[idx]
+                    rest.append((vertex_value, lambda_value))
+                idx += 1
+            
+            n = len(rest)
+            a = 0
+            while a < n:
+                b = 0
+                while b < n - 1:
+                    left_phi = phi[rest[b][0]]
+                    right_phi = phi[rest[b + 1][0]]
+                    if left_phi < right_phi:
+                        temp = rest[b]
+                        rest[b] = rest[b + 1]
+                        rest[b + 1] = temp
+                    b += 1
+                a += 1
+
+            new_bag = []
+            new_lam = []
+
+            idx = 0
+            while idx < len(rest):
+                new_bag.append(rest[idx][0])
+                new_lam.append(rest[idx][1])
+                idx += 1
+
+            new_bag.append(pivot[0])
+            new_lam.append(pivot[1])
+
+            bags[v] = new_bag
+            lambdas[v] = new_lam
         
         return bags, lambdas, parent, phi
 
@@ -285,7 +334,7 @@ class Graph:
         pos = {}
         dis = {}
 
-        vertices_in_order = sorted(phi.keys(), key=lambda x: phi[x])
+        vertices_in_order = sorted(phi.keys(), key=lambda x: phi[x], reverse=True)
 
         for v in vertices_in_order:
             bag_v = bags[v]
@@ -293,26 +342,37 @@ class Graph:
             chain_v = anc[v]
 
             # Build pos[v]
-            pos_list = []
+            pos_v = []
             for x in bag_v:
-                if x not in chain_v:
-                    raise ValueError(f"Vertex {x} not found in ancestor chain of {v}")
-                position = chain_v.index(x)
-                pos_list.append(position)
-            pos[v] = pos_list
+                found_position = -1
+                for index in range(len(chain_v)):
+                    if chain_v[index] == x:
+                        found_position = index
+                        break
+                
+                if found_position == -1:
+                    raise ValueError(f"{x} from X({v}) is not in its ancestor chain")
+                
+                pos_v.append(found_position)
+            
+            pos[v] = {bag_v[i]: pos_v[i] for i in range(len(bag_v))}
 
             # Build dis[v]
             L = len(chain_v)
-            dis_list = [float('inf')] * L
-            dis_list[L - 1] = 0  # distance from v to itself
+            dis_v = [float('inf')] * L
+            dis_v[L - 1] = 0.0  # distance from v to itself
 
             for i in range(L - 1):
                 best_distance = float('inf')
 
-                for j in range(len(bag_v)):
+                j = 0
+                while j < len(bag_v):
+                    if bag_v[j] == v:
+                        j += 1
+                        continue
                     x_j = bag_v[j]
                     lam_xj = lam_v[j]
-                    pos_xj = pos_list[j]
+                    pos_xj = pos[v][x_j]
 
                     if pos_xj > i:
                         if (x_j in dis) and (i < len(dis[x_j])):
@@ -329,9 +389,46 @@ class Graph:
                     total = lam_xj + temp_distance
                     if total < best_distance:
                         best_distance = total
+                    
+                    j += 1
 
-                dis_list[i] = best_distance
+                dis_v[i] = best_distance
 
-            dis[v] = dis_list
+            dis[v] = dis_v
 
         return anc, pos, dis
+    
+    """
+    Algorithm 1 H2H Distance Query
+        - Uses anc[] and dis[] from Algorithm 5 to answer dist(s, t)
+        - anc[v] is the ancestor chain for v
+        - dis[v][i] is the distance from v to anc[v][i]
+
+    Computes the shortest path distance between vertices s and t using H2H index
+    Returns float('inf') if no path is found
+    """
+    def H2H_query(self, s, t, anc, pos, dis, bags):
+        if s not in anc or t not in anc:
+            return float('inf')
+        if s not in dis or t not in dis:
+            return float('inf')
+
+        chain_s = anc[s]
+        chain_t = anc[t]
+        dis_s = dis[s]
+        dis_t = dis[t]
+
+        limit = min(len(chain_s), len(chain_t), len(dis_s), len(dis_t))
+
+        best_distance = float('inf')
+
+        i = 0
+        while i < limit and chain_s[i] == chain_t[i]:
+            total = dis_s[i] + dis_t[i]
+            if total < best_distance:
+                best_distance = total
+            i += 1
+
+        return best_distance
+    
+    
